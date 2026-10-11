@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { bookName, createExpense, csvFileName, idSchema, LedgerError, toCsv, totalFor, type Expense } from './ledger';
+import { bookName, compareExpenses, createExpense, csvFileName, idSchema, LedgerError, toCsv, totalFor, type Expense } from './ledger';
 
 const now = new Date('2026-10-11T04:35:20.000Z');
 const input = { name: 'Coffee', amount: 120.5, currency: 'INR', timezone: 'Asia/Kolkata', location: '' };
@@ -30,6 +30,29 @@ describe('createExpense', () => {
     expect(() => createExpense({ ...input, ...overrides }, now)).toThrow(LedgerError);
   });
 
+  it('accepts a manual past date and time', () => {
+    expect(createExpense({ ...input, date: '2026-09-30', time: '18:45' }, now)).toMatchObject({ date: '2026-09-30', time: '18:45:00', recordedAt: '2026-10-11T04:35:20.000Z' });
+  });
+
+  it('uses the current time when only the date is set', () => {
+    expect(createExpense({ ...input, date: '2026-01-02' }, now)).toMatchObject({ date: '2026-01-02', time: '10:05:20' });
+  });
+
+  it('allows today in the user timezone even when it is still yesterday in UTC', () => {
+    expect(createExpense({ ...input, date: '2026-10-11' }, new Date('2026-10-10T20:00:00.000Z'))).toMatchObject({ date: '2026-10-11' });
+  });
+
+  it.each([
+    ['future date', { date: '2026-10-12' }],
+    ['too old date', { date: '1999-12-31' }],
+    ['impossible date', { date: '2026-02-30' }],
+    ['bad date format', { date: '11/10/2026' }],
+    ['bad time', { date: '2026-10-01', time: '25:00' }],
+    ['bad time format', { time: '7pm' }],
+  ])('rejects %s', (_label, overrides) => {
+    expect(() => createExpense({ ...input, ...overrides }, now)).toThrow(LedgerError);
+  });
+
   it('rejects a non-object body', () => {
     expect(() => createExpense(null)).toThrow(LedgerError);
   });
@@ -49,6 +72,18 @@ describe('idSchema', () => {
   it('accepts UUIDs only', () => {
     expect(idSchema.safeParse('3f1c0a1e-8b7a-4c1e-9f0a-2b3c4d5e6f70').success).toBe(true);
     expect(idSchema.safeParse('../ledgers').success).toBe(false);
+  });
+});
+
+describe('compareExpenses', () => {
+  it('orders by expense date, then time, then entry time, newest first', () => {
+    const list = [
+      expense({ id: 'old', date: '2026-09-01', time: '23:00:00' }),
+      expense({ id: 'later-entry', date: '2026-10-01', time: '09:00:00', recordedAt: '2026-10-02T00:00:00.000Z' }),
+      expense({ id: 'evening', date: '2026-10-01', time: '20:00:00' }),
+      expense({ id: 'first-entry', date: '2026-10-01', time: '09:00:00', recordedAt: '2026-10-01T00:00:00.000Z' }),
+    ];
+    expect(list.sort(compareExpenses).map(e => e.id)).toEqual(['evening', 'later-entry', 'first-entry', 'old']);
   });
 });
 

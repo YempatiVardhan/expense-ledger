@@ -43,17 +43,45 @@ export async function insertBook(name: string) {
   return toBook(check<BookRow>(await db().from('ledgers').insert({ name }).select(BOOK_COLUMNS).single()));
 }
 
+// Like check(), but a missing row is a valid result (null) rather than an error.
+function checkOptional<T>(result: { data: T | null; error: unknown }): T | null {
+  if (result.error) {
+    console.error('Database request failed', result.error);
+    throw new ApiError('The database could not complete the request. Try again.', 502);
+  }
+  return result.data;
+}
+
 export async function bookExists(id: string) {
-  const { data, error } = await db().from('ledgers').select('id').eq('id', id).maybeSingle();
-  if (error) { console.error('Database request failed', error); throw new ApiError('The database could not complete the request. Try again.', 502); }
-  return data !== null;
+  return checkOptional(await db().from('ledgers').select('id').eq('id', id).maybeSingle()) !== null;
+}
+
+export async function updateBook(id: string, name: string) {
+  const row = checkOptional<BookRow>(await db().from('ledgers').update({ name }).eq('id', id).select(BOOK_COLUMNS).maybeSingle());
+  return row && toBook(row);
+}
+
+// Expenses are removed by the ON DELETE CASCADE foreign key.
+export async function deleteBook(id: string) {
+  return check<{ id: string }[]>(await db().from('ledgers').delete().eq('id', id).select('id')).length > 0;
 }
 
 export async function listExpenses(bookId: string) {
-  return check<ExpenseRow[]>(await db().from('expenses').select(EXPENSE_COLUMNS).eq('ledger_id', bookId).order('recorded_at', { ascending: false }).limit(1000)).map(toExpense);
+  return check<ExpenseRow[]>(await db().from('expenses').select(EXPENSE_COLUMNS).eq('ledger_id', bookId).order('date', { ascending: false }).order('time', { ascending: false }).order('recorded_at', { ascending: false }).limit(1000)).map(toExpense);
 }
 
 export async function insertExpense(bookId: string, expense: NewExpense) {
   const { recordedAt, ...rest } = expense;
   return toExpense(check<ExpenseRow>(await db().from('expenses').insert({ ...rest, ledger_id: bookId, recorded_at: recordedAt }).select(EXPENSE_COLUMNS).single()));
+}
+
+// Updates keep the original recorded_at so it stays an audit of when the entry was first made.
+export async function updateExpense(bookId: string, expenseId: string, expense: NewExpense) {
+  const { name, amount, currency, date, time, timezone, location } = expense;
+  const row = checkOptional<ExpenseRow>(await db().from('expenses').update({ name, amount, currency, date, time, timezone, location }).eq('id', expenseId).eq('ledger_id', bookId).select(EXPENSE_COLUMNS).maybeSingle());
+  return row && toExpense(row);
+}
+
+export async function deleteExpense(bookId: string, expenseId: string) {
+  return check<{ id: string }[]>(await db().from('expenses').delete().eq('id', expenseId).eq('ledger_id', bookId).select('id')).length > 0;
 }
