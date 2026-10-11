@@ -1,0 +1,47 @@
+# Deploys to Vercel production on every push to main, only after lint, typecheck and tests pass.
+# Required repository secrets: VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID.
+# App runtime variables (SUPABASE_URL, SUPABASE_SECRET_KEY) are read from the Vercel project's Production environment.
+name: Deploy production
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Never run two production deploys at once; queue them in push order instead.
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://pocket-ledger-brown.vercel.app
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_CLI: vercel@63.1.2
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - name: Pull Vercel production settings
+        run: npx --yes "$VERCEL_CLI" pull --yes --environment=production --token="$VERCEL_TOKEN"
+      - name: Build
+        run: npx --yes "$VERCEL_CLI" build --prod --token="$VERCEL_TOKEN"
+      - name: Deploy to production
+        run: npx --yes "$VERCEL_CLI" deploy --prebuilt --prod --token="$VERCEL_TOKEN"
