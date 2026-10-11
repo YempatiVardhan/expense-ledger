@@ -7,8 +7,8 @@ const expense = (overrides: Partial<Expense> = {}): Expense => ({ id: 'e1', ...c
 
 describe('createExpense', () => {
   it('stamps local date, time and UTC timestamp for the given timezone', () => {
-    expect(createExpense({ ...input, name: '  Coffee  ', location: ' Koramangala, Bengaluru ' }, now)).toEqual({
-      name: 'Coffee', amount: 120.5, currency: 'INR', date: '2026-10-11', time: '10:05:20', timezone: 'Asia/Kolkata', location: 'Koramangala, Bengaluru', recordedAt: '2026-10-11T04:35:20.000Z',
+    expect(createExpense({ ...input, name: '  Coffee  ', location: ' Saidabad, Hyderabad ' }, now)).toEqual({
+      name: 'Coffee', amount: 120.5, currency: 'INR', date: '2026-10-11', time: '10:05:20', timezone: 'Asia/Kolkata', location: 'Saidabad, Hyderabad', recordedAt: '2026-10-11T04:35:20.000Z',
     });
   });
 

@@ -17,7 +17,7 @@ const book = { id: LEDGER_ID, name: 'Trip', createdAt: '2026-10-11T00:00:00.000Z
 const post = (path: string, body: unknown, origin: string | null = ORIGIN) =>
   new Request(`${ORIGIN}${path}`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...(origin ? { Origin: origin } : {}) }, body: typeof body === 'string' ? body : JSON.stringify(body) });
 const context = (id: string) => ({ params: Promise.resolve({ id }) });
-const expenseBody = { name: 'Coffee', amount: 120.5, currency: 'INR', timezone: 'Asia/Kolkata', location: 'Koramangala, Bengaluru' };
+const expenseBody = { name: 'Coffee', amount: 120.5, currency: 'INR', timezone: 'Asia/Kolkata', location: 'Saidabad, Hyderabad' };
 
 beforeEach(() => vi.clearAllMocks());
 
@@ -81,7 +81,7 @@ describe('/api/ledgers/[id]/expenses', () => {
     const response = await expenses.POST(post(`/api/ledgers/${LEDGER_ID}/expenses`, { ...expenseBody, recordedAt: '2000-01-01T00:00:00.000Z' }), context(LEDGER_ID));
     expect(response.status).toBe(201);
     const [, saved] = vi.mocked(db.insertExpense).mock.calls[0];
-    expect(saved).toMatchObject({ name: 'Coffee', amount: 120.5, location: 'Koramangala, Bengaluru' });
+    expect(saved).toMatchObject({ name: 'Coffee', amount: 120.5, location: 'Saidabad, Hyderabad' });
     expect(Math.abs(Date.parse(saved.recordedAt) - Date.now())).toBeLessThan(5000);
   });
 
@@ -96,9 +96,9 @@ describe('/api/ledgers/[id]/expenses', () => {
 
 describe('/api/geocode', () => {
   it('returns the area name', async () => {
-    vi.mocked(reverseGeocode).mockResolvedValue('Koramangala, Bengaluru');
+    vi.mocked(reverseGeocode).mockResolvedValue('Saidabad, Hyderabad');
     const response = await geocode.GET(new Request(`${ORIGIN}/api/geocode?lat=12.93&lon=77.62`));
-    expect(await response.json()).toEqual({ area: 'Koramangala, Bengaluru' });
+    expect(await response.json()).toEqual({ area: 'Saidabad, Hyderabad' });
     expect(reverseGeocode).toHaveBeenCalledWith(12.93, 77.62);
   });
 

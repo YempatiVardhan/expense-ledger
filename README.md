@@ -19,7 +19,7 @@ The browser talks only to this app's API routes (`/api/ledgers`, `/api/ledgers/[
 
 There is intentionally no delete or edit in the app, because anyone could use it. Remove rows from the Supabase dashboard if needed. Lists show the newest 500 ledgers and the newest 1,000 expenses per ledger.
 
-The location pin asks for browser GPS permission, then looks up the area name (for example "Koramangala, Bengaluru") through [OpenStreetMap Nominatim](https://nominatim.org/) via `/api/geocode`. Only the area name is saved; coordinates are rounded to four decimals for the lookup and never stored. Nominatim's free service allows about one request per second; for heavier traffic, switch `lib/geocode.ts` to a paid provider. GPS requires HTTPS (localhost is allowed). Typed locations work without GPS.
+The location pin asks for browser GPS permission, then looks up the area and city (for example "Saidabad, Hyderabad"; villages use their district) through [OpenStreetMap Nominatim](https://nominatim.org/) via `/api/geocode`. Only the area and city are saved; coordinates are rounded to four decimals for the lookup and never stored. Nominatim's free service allows about one request per second; for heavier traffic, switch `lib/geocode.ts` to a paid provider. GPS requires HTTPS (localhost is allowed). Typed locations work without GPS.
 
 **Export CSV** downloads the selected ledger. Exported text that would be evaluated as a spreadsheet formula is prefixed with `'`.
 

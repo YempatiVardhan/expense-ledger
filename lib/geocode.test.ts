@@ -2,20 +2,20 @@ import { describe, expect, it, vi } from 'vitest';
 import { areaName, coordsSchema, reverseGeocode } from './geocode';
 
 describe('areaName', () => {
-  it('combines the neighbourhood-level area with the city', () => {
-    expect(areaName({ suburb: 'Koramangala', city: 'Bengaluru', state: 'Karnataka' })).toBe('Koramangala, Bengaluru');
+  it('returns the area and city, without the ward prefix', () => {
+    expect(areaName({ neighbourhood: 'Lakshmi Nagar', suburb: 'Ward 24 Saidabad', city_district: 'Greater Hyderabad Municipal Corporation South Zone', city: 'Hyderabad', state_district: 'Hyderabad', state: 'Telangana', postcode: '500059', country: 'India' })).toBe('Saidabad, Hyderabad');
+    expect(areaName({ suburb: 'Ward No. 7 - Ameerpet', city: 'Hyderabad' })).toBe('Ameerpet, Hyderabad');
   });
 
-  it('prefers the most specific area and skips duplicates', () => {
-    expect(areaName({ neighbourhood: 'Indiranagar', suburb: 'East', city: 'Bengaluru' })).toBe('Indiranagar, Bengaluru');
-    expect(areaName({ suburb: 'Bengaluru', city: 'Bengaluru' })).toBe('Bengaluru');
+  it('uses the district for villages outside a city', () => {
+    expect(areaName({ village: 'Hampi', county: 'Hosapete taluk', state_district: 'Vijayanagara', state: 'Karnataka' })).toBe('Hampi, Vijayanagara');
   });
 
-  it('falls back to town, then state, then the display name', () => {
-    expect(areaName({ village: 'Hampi', county: 'Vijayanagara' })).toBe('Hampi, Vijayanagara');
-    expect(areaName({ state: 'Goa' })).toBe('Goa');
-    expect(areaName({}, 'MG Road, Ashok Nagar, Bengaluru, Karnataka, India')).toBe('MG Road, Ashok Nagar');
-    expect(areaName({}, '')).toBeNull();
+  it('returns whichever part exists and skips duplicates', () => {
+    expect(areaName({ city: 'Hyderabad', state: 'Telangana' })).toBe('Hyderabad');
+    expect(areaName({ suburb: 'Saidabad' })).toBe('Saidabad');
+    expect(areaName({ town: 'Udupi', state_district: 'Udupi' })).toBe('Udupi');
+    expect(areaName({ road: 'MG Road', state: 'Karnataka' })).toBeNull();
   });
 });
 
@@ -31,8 +31,8 @@ describe('coordsSchema', () => {
 
 describe('reverseGeocode', () => {
   it('queries Nominatim with rounded coordinates and an identifying User-Agent', async () => {
-    const fetchImpl = vi.fn(async () => Response.json({ address: { suburb: 'Koramangala', city: 'Bengaluru' } }));
-    await expect(reverseGeocode(12.9352719, 77.6245123, fetchImpl)).resolves.toBe('Koramangala, Bengaluru');
+    const fetchImpl = vi.fn(async () => Response.json({ address: { suburb: 'Ward 24 Saidabad', city: 'Hyderabad' } }));
+    await expect(reverseGeocode(12.9352719, 77.6245123, fetchImpl)).resolves.toBe('Saidabad, Hyderabad');
     const [url, init] = fetchImpl.mock.calls[0] as unknown as [string, RequestInit];
     const params = new URL(url).searchParams;
     expect(url.startsWith('https://nominatim.openstreetmap.org/reverse?')).toBe(true);

@@ -18,7 +18,7 @@ function fakeApi(fail?: string) {
       return Response.json({ book }, { status: 201 });
     }
     const id = decodeURIComponent(url.split('/')[3]);
-    if (url.startsWith('/api/geocode')) return Response.json({ area: 'Koramangala, Bengaluru' });
+    if (url.startsWith('/api/geocode')) return Response.json({ area: 'Saidabad, Hyderabad' });
     if (method === 'GET') return Response.json({ expenses: store.expenses[id] });
     const expense = { id: `e${Math.random()}`, date: '2026-10-11', time: '10:05:20', recordedAt: '2026-10-11T04:35:20.000Z', ...body } as Expense;
     store.expenses[id].unshift(expense);
@@ -78,7 +78,7 @@ describe('Ledger', () => {
     vi.stubGlobal('navigator', { ...navigator, geolocation: { getCurrentPosition: (ok: PositionCallback) => ok({ coords: { latitude: 12.9352719, longitude: 77.6245123 } } as GeolocationPosition) } });
     render(<Ledger />);
     fireEvent.click(screen.getByRole('button', { name: 'Use current area' }));
-    await waitFor(() => expect((screen.getByLabelText(/Location/) as HTMLInputElement).value).toBe('Koramangala, Bengaluru'));
+    await waitFor(() => expect((screen.getByLabelText(/Location/) as HTMLInputElement).value).toBe('Saidabad, Hyderabad'));
     expect(requests.some(r => r.url === '/api/geocode?lat=12.9352719&lon=77.6245123')).toBe(true);
   });
 
